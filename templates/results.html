@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Results - Career Predictor{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="card shadow-lg rounded-4 border-0">
+      <div class="card-body p-5">
+        <h2 class="fw-bold mb-4 text-center">Your Recommended Career</h2>
+        <h3 class="text-primary text-center mb-4"><i class="fas fa-award me-2"></i>{{ prediction.career }}</h3>
+        <p class="text-center">{{ prediction.description }}</p>
+        <hr>
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <h5 class="fw-semibold">Your Skill Stats</h5>
+            {% for stat in user_stats %}
+            <div class="mb-2">
+              <span>{{ stat.name }}:</span>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width: {{ stat.value * 100 }}%"></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="col-md-6">
+            <h5 class="fw-semibold">Growth Recommendations</h5>
+            <ul class="list-group list-group-flush">
+              {% for tip in recommendations %}
+              <li class="list-group-item bg-transparent">{{ tip }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        <div class="text-center">
+          <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-2">Try Again</a>
+          <a href="{{ url_for('careers') }}" class="btn btn-primary">Explore Careers</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

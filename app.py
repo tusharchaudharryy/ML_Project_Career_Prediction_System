@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
 import logging
 from datetime import datetime
 import traceback
@@ -35,24 +36,24 @@ logger = logging.getLogger(__name__)
 # Initialize the predictor
 predictor = CareerPredictor()
 
-# Define skill categories for the UI
+# ✅ Corrected technical and personality field keys
 TECHNICAL_SKILLS = [
-    ('database_fundamentals', 'Database Fundamentals'),
+    ('database_fundamentals', 'Database Skills'),
     ('computer_architecture', 'Computer Architecture'),
-    ('distributed_computing_systems', 'Distributed Computing'),
+    ('distributed_computing', 'Distributed Computing'),
     ('cyber_security', 'Cybersecurity'),
     ('networking', 'Networking'),
-    ('software_development', 'Software Development'),
+    ('development', 'Software Development'),
     ('programming_skills', 'Programming Skills'),
     ('project_management', 'Project Management'),
-    ('computer_forensics_fundamentals', 'Computer Forensics'),
+    ('computer_forensics', 'Computer Forensics'),
     ('technical_communication', 'Technical Communication'),
     ('ai_ml', 'AI/Machine Learning'),
     ('software_engineering', 'Software Engineering'),
     ('business_analysis', 'Business Analysis'),
     ('communication_skills', 'Communication Skills'),
     ('data_science', 'Data Science'),
-    ('troubleshooting_skills', 'Troubleshooting'),
+    ('troubleshooting', 'Troubleshooting'),
     ('graphics_designing', 'Graphics Design')
 ]
 
@@ -66,21 +67,22 @@ PERSONALITY_TRAITS = [
     ('openness_to_change', 'Adaptability'),
     ('hedonism', 'Enjoyment Seeking'),
     ('self_enhancement', 'Achievement Orientation'),
-    ('self_transcendence', 'Helping Others')
+    ('self_transcendence', 'Helping Others'),
+    ('conservation', 'Value Stability')
 ]
 
 @app.route('/')
 def index():
     """Main page with the skills assessment form."""
-    return render_template('index.html', 
-                         technical_skills=TECHNICAL_SKILLS,
-                         personality_traits=PERSONALITY_TRAITS)
+    return render_template('index.html',
+                           technical_skills=TECHNICAL_SKILLS,
+                           personality_traits=PERSONALITY_TRAITS,
+                           get_skill_description=get_skill_description)
 
 @app.route('/predict', methods=['POST'])
 def predict():
     """Handle the prediction request."""
     try:
-        # Get form data
         form_data = request.form.to_dict()
 
         # Validate input
@@ -91,37 +93,27 @@ def predict():
 
         # Prepare features for prediction
         features = []
-
-        # Add technical skills (normalize from 1-7 to 0-1)
         for skill_key, _ in TECHNICAL_SKILLS:
             value = float(form_data.get(skill_key, 1)) / 7.0
             features.append(value)
 
-        # Add personality traits (already 0-1)
         for trait_key, _ in PERSONALITY_TRAITS:
             value = float(form_data.get(trait_key, 0.5))
             features.append(value)
 
-        # Make prediction
+        # Prediction
         prediction_result = predictor.predict(features)
 
-        # Format results
         formatted_result = format_predictions(prediction_result)
-
-        # Calculate user statistics
         user_stats = calculate_skill_statistics(form_data)
-
-        # Generate recommendations
         recommendations = generate_recommendations(prediction_result, form_data)
-
-        # Log the prediction
         log_prediction(form_data, prediction_result)
 
         return render_template('results.html',
-                             prediction=formatted_result,
-                             user_stats=user_stats,
-                             recommendations=recommendations,
-                             prediction_data=prediction_result)
+                               prediction=formatted_result,
+                               user_stats=user_stats,
+                               recommendations=recommendations,
+                               prediction_data=prediction_result)
 
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
@@ -131,25 +123,19 @@ def predict():
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    """API endpoint for predictions."""
     try:
         data = request.get_json()
-
         if not data or 'features' not in data:
             return jsonify({'error': 'Invalid input data'}), 400
 
-        # Make prediction
         prediction_result = predictor.predict(data['features'])
 
-        # Format for API response
-        response = {
+        return jsonify({
             'success': True,
             'prediction': prediction_result,
             'formatted': format_predictions(prediction_result),
             'timestamp': datetime.now().isoformat()
-        }
-
-        return jsonify(response)
+        })
 
     except Exception as e:
         logger.error(f"API prediction error: {str(e)}")
@@ -161,13 +147,10 @@ def api_predict():
 
 @app.route('/about')
 def about():
-    """About page explaining the system."""
     return render_template('about.html')
 
 @app.route('/careers')
 def careers():
-    """Page showing career information."""
-    # Get model info if available
     model_info = predictor.get_model_info()
     careers = model_info.get('target_classes', [])
 
@@ -182,11 +165,8 @@ def careers():
 
 @app.route('/health')
 def health_check():
-    """Health check endpoint."""
     try:
-        # Check if model is loaded
         model_status = predictor.get_model_info()
-
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
@@ -210,7 +190,6 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 if __name__ == '__main__':
-    # Try to load the model on startup
     try:
         if predictor.load_model():
             logger.info("Model loaded successfully")
@@ -219,5 +198,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
 
-    # Run the app
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,67 +1,42 @@
-:root {
-  --primary: #5c6ac4;
-  --secondary: #ecc94b;
-  --bg: #f7fafc;
-  --text: #2d3748;
-  --radius: 6px;
-  --shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-html {
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-*, *:before, *:after { box-sizing: inherit; }
-
+/* Dark background gradient animation */
 body {
-  background: var(--bg);
-  margin: 0;
-  color: var(--text);
+  background: linear-gradient(-45deg, #1e1e2f, #27293d, #1e1e2f, #27293d);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  color: #e0e0e0;
 }
 
-.navbar {
-  background: var(--primary);
-  padding: 1rem 2rem;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+@keyframes gradientBG {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.container {
-  max-width: 960px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-}
-
-.btn {
-  padding: .6rem 1.2rem;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--secondary);
-  color: #000;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform .2s;
-}
-.btn:hover { transform: translateY(-2px); }
-
+/* Card overrides for transparency */
 .card {
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  background-color: rgba(30,30,47,0.85) !important;
+  border: none !important;
 }
 
+/* Button hover effect */
+.btn-primary {
+  transition: transform 0.2s;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+}
+
+/* Hero section styling */
+#hero {
+  padding: 100px 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+}
+
+/* Progress bar style */
 .progress {
-  height: 1rem;
-  border-radius: var(--radius);
-  background: #e2e8f0;
-  overflow: hidden;
+  background-color: #444459;
 }
 .progress-bar {
-  height: 100%;
-  background: var(--primary);
-  transition: width .4s ease;
+  background-color: #4e9cff;
 }

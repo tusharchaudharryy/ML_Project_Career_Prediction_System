@@ -5,9 +5,10 @@ import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)  # Optional: configure logging
 
 class CareerPredictor:
-    """Handles career predictions using trained model"""
+    """Handles career predictions using a trained model"""
 
     def __init__(self, model_path=None):
         self.model = None
@@ -48,6 +49,9 @@ class CareerPredictor:
             if np.any(features < 0) or np.any(features > 1):
                 raise ValueError("All features must be in range [0, 1]")
 
+            if self.model is None:
+                self.load_model()
+
             expected_features = self.model.n_features_in_
             if features.shape[0] > expected_features:
                 features = features[:expected_features]
@@ -63,28 +67,22 @@ class CareerPredictor:
     def predict(self, features):
         try:
             if self.model is None:
-                if not self.load_model():
-                    raise RuntimeError("Model not loaded")
+                self.load_model()
 
             features_array = self.validate_features(features)
-            prediction = self.model.predict(features_array)[0]
-
-            if hasattr(self.model, 'predict_proba'):
-                probabilities = self.model.predict_proba(features_array)[0]
-                prob_dict = {cls: float(probabilities[i]) for i, cls in enumerate(self.target_classes)}
-                sorted_predictions = sorted(prob_dict.items(), key=lambda x: x[1], reverse=True)
+            prediction = self.model.predict(features_array)
+            # Ensure prediction is a scalar or 1-element array
+            pred_idx = int(prediction[0])
+            if self.target_classes is not None and len(self.target_classes) > pred_idx:
+                predicted_class = self.target_classes[pred_idx]
             else:
-                prob_dict = {self.target_classes[prediction]: 1.0}
-                sorted_predictions = [(self.target_classes[prediction], 1.0)]
+                predicted_class = pred_idx
 
             return {
-                'primary_prediction': self.target_classes[prediction],
-                'confidence': float(probabilities[prediction]) if hasattr(self.model, 'predict_proba') else 1.0,
-                'all_predictions': sorted_predictions,
-                'top_3_predictions': sorted_predictions[:3],
+                'prediction': predicted_class,
+                'raw_prediction': pred_idx,
                 'timestamp': datetime.now().isoformat()
             }
-
         except Exception as e:
             logger.error(f"Prediction error: {str(e)}")
             raise
@@ -180,29 +178,3 @@ def make_prediction(features, model_path=None):
 def make_batch_predictions(features_list, model_path=None):
     predictor = CareerPredictor(model_path)
     return predictor.predict_batch(features_list)
-
-# ---------- Example Usage ----------
-
-if __name__ == "__main__":
-    predictor = CareerPredictor()
-    if predictor.load_model():
-        sample = [
-            0.8, 0.6, 0.4, 0.9, 0.7, 0.8, 0.9, 0.5, 0.3, 0.7,
-            0.9, 0.8, 0.6, 0.7, 0.9, 0.8, 0.4,
-            0.7, 0.8, 0.6, 0.7, 0.5, 0.6, 0.7, 0.4, 0.5, 0.6, 0.7
-        ]
-
-        try:
-            result = predictor.predict(sample)
-            print("\n Prediction:", result['primary_prediction'])
-            print(" Top 3 predictions:", result['top_3_predictions'])
-
-            explanation = predictor.explain_prediction(sample)
-            print("\n Top contributing features:")
-            for feature, contrib in explanation['top_contributing_features']:
-                print(f" - {feature}: {contrib:.4f}")
-
-        except Exception as e:
-            print(" Error:", e)
-    else:
-        print(" Failed to load model.")
