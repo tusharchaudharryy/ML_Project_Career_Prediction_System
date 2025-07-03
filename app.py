@@ -1,154 +1,140 @@
-# app.py - Main Flask Application for Tech Career Prediction
+import os
+import pickle
+from pathlib import Path
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import (StringField, SelectField, SelectMultipleField, IntegerField,
+                     SubmitField)
+from wtforms.validators import DataRequired, NumberRange
+from werkzeug.utils import secure_filename
+
 import numpy as np
 import pandas as pd
-from src.predict import CareerPredictor
-from src.utils import validate_input, format_predictions
-import logging
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize Flask app
+# -------------------------------------------------------
+# CONFIGURATION
+# -------------------------------------------------------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key')
 
-# Initialize predictor
-predictor = CareerPredictor()
+MODEL_PATH = Path('model.pkl')
 
-# Feature lists for form generation
-TECHNICAL_SKILLS = [
-    'database_fundamentals', 'computer_architecture', 'distributed_computing',
-    'cyber_security', 'networking', 'development', 'programming_skills',
-    'project_management', 'computer_forensics', 'technical_communication',
-    'ai_ml', 'software_engineering', 'business_analysis', 'communication_skills',
-    'data_science', 'troubleshooting', 'graphics_designing'
+CAREERS = [
+    'Software Engineer', 'Data Scientist', 'Product Manager',
+    'Business Analyst', 'Marketing Manager', 'Financial Analyst',
+    'UX Designer', 'DevOps Engineer'
 ]
 
-PERSONALITY_TRAITS = [
-    'openness', 'conscientiousness', 'extraversion', 'agreeableness',
-    'emotional_range', 'conversation', 'openness_to_change', 'hedonism',
-    'self_enhancement', 'self_transcendence', 'conservation'
+EDU_LEVELS = [
+    ('High School', 'High School Diploma'),
+    ('Bachelor', "Bachelor's"),
+    ('Master', "Master's"),
+    ('PhD', 'Doctorate (PhD)')
 ]
 
-CAREER_ROLES = [
-    'Software Developer', 'Data Scientist', 'Machine Learning Engineer',
-    'Cybersecurity Analyst', 'Network Engineer', 'Database Administrator',
-    'DevOps Engineer', 'AI Researcher', 'Business Analyst', 'Project Manager',
-    'System Administrator', 'Cloud Architect', 'Mobile Developer',
-    'Web Developer', 'Game Developer', 'UI/UX Designer'
-]
+# -------------------------------------------------------
+# FORMS
+# -------------------------------------------------------
+class PredictionForm(FlaskForm):
+    age = IntegerField('Age', validators=[DataRequired(), NumberRange(14, 65)])
+    education = SelectField('Highest Education', choices=EDU_LEVELS,
+                            validators=[DataRequired()])
+    major = StringField('Major / Field of Study', validators=[DataRequired()])
+    interests = SelectMultipleField('Key Interests', coerce=str,
+        choices=[('math', 'Math'), ('coding', 'Coding'), ('design', 'Design'),
+                 ('business', 'Business'), ('finance', 'Finance'),
+                 ('research', 'Research'), ('communication', 'Communication')])
+    submit = SubmitField('Predict Career')
 
+# -------------------------------------------------------
+# UTILITIES
+# -------------------------------------------------------
+
+def train_and_save_dummy_model(path: Path = MODEL_PATH):
+    """Create a simple RandomForest model from synthetic data (only for demo)."""
+    rng = np.random.default_rng(42)
+
+    n = 200
+    X_demo = pd.DataFrame({
+        'age': rng.integers(18, 40, size=n),
+        'education': rng.choice([e[0] for e in EDU_LEVELS], size=n),
+        'major': rng.choice(['CS', 'Business', 'Design', 'Finance', 'Psychology'], size=n),
+        'interests': rng.choice(['math', 'coding', 'design', 'business', 'finance',
+                                 'research', 'communication'], size=n)
+    })
+    y_demo = rng.choice(CAREERS, size=n)
+
+    numeric_features = ['age']
+    categorical_features = ['education', 'major', 'interests']
+
+    preprocessor = ColumnTransformer([
+        ('num', StandardScaler(), numeric_features),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+    ])
+
+    model = Pipeline([
+        ('prep', preprocessor),
+        ('rf', RandomForestClassifier(n_estimators=100, random_state=42))
+    ])
+
+    model.fit(X_demo, y_demo)
+    with open(path, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"Dummy model trained and saved to {path}")
+
+
+def load_model():
+    if not MODEL_PATH.exists():
+        train_and_save_dummy_model()
+    with open(MODEL_PATH, 'rb') as f:
+        return pickle.load(f)
+
+
+model = load_model()
+
+# -------------------------------------------------------
+# ROUTES
+# -------------------------------------------------------
 @app.route('/')
-def home():
-    """Main landing page with assessment form"""
-    try:
-        return render_template('index.html', 
-                             technical_skills=TECHNICAL_SKILLS,
-                             personality_traits=PERSONALITY_TRAITS,
-                             career_roles=CAREER_ROLES)
-    except Exception as e:
-        logger.error(f"Error loading home page: {str(e)}")
-        return "Internal Server Error", 500
+def index():
+    return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
+
+@app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    """Handle career prediction request"""
-    try:
-        # Get form data
-        form_data = request.form.to_dict()
-        
-        # Validate input
-        is_valid, error_message = validate_input(form_data)
-        if not is_valid:
-            return jsonify({'error': error_message}), 400
-        
-        # Prepare features array
-        features = []
-        
-        # Technical skills (normalize from 1-7 scale to 0-1)
-        for skill in TECHNICAL_SKILLS:
-            value = float(form_data.get(skill, 1)) / 7.0
-            features.append(value)
-        
-        # Personality traits (already normalized 0-1)
-        for trait in PERSONALITY_TRAITS:
-            value = float(form_data.get(trait, 0.5))
-            features.append(value)
-        
-        # Make prediction
-        prediction_result = predictor.predict(features)
-        
-        # Format results
-        formatted_result = format_predictions(prediction_result)
-        
-        return render_template('result.html', 
-                             prediction=formatted_result,
-                             form_data=form_data)
-        
-    except Exception as e:
-        logger.error(f"Error in prediction: {str(e)}")
-        return jsonify({'error': 'Prediction failed. Please try again.'}), 500
+    form = PredictionForm()
+    if form.validate_on_submit():
+        data = {
+            'age': form.age.data,
+            'education': form.education.data,
+            'major': form.major.data,
+            'interests': ','.join(form.interests.data) if form.interests.data else 'none'
+        }
+        df = pd.DataFrame([data])
+        probs = model.predict_proba(df)[0]
+        predictions = sorted(zip(model.classes_, probs), key=lambda x: x[1], reverse=True)
+        return render_template('results.html', predictions=predictions)
+    return render_template('prediction.html', form=form)
+
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    """API endpoint for programmatic predictions"""
-    try:
-        data = request.get_json()
-        
-        if not data or 'features' not in data:
-            return jsonify({'error': 'Invalid request format'}), 400
-        
-        features = data['features']
-        
-        if len(features) != 28:
-            return jsonify({'error': 'Expected 28 features'}), 400
-        
-        # Make prediction
-        prediction_result = predictor.predict(features)
-        
-        return jsonify({
-            'status': 'success',
-            'prediction': prediction_result
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in API prediction: {str(e)}")
-        return jsonify({'error': 'Prediction failed'}), 500
+    payload = request.get_json(force=True)
+    required_keys = {'age', 'education', 'major', 'interests'}
+    if not required_keys.issubset(payload):
+        return jsonify({'error': 'Missing keys'}), 400
+    df = pd.DataFrame([payload])
+    probs = model.predict_proba(df)[0]
+    return jsonify({cls: float(prob) for cls, prob in zip(model.classes_, probs)})
 
-@app.route('/about')
-def about():
-    """About page with project information"""
-    return render_template('about.html')
 
-@app.route('/health')
-def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'healthy',
-        'model_loaded': predictor.model is not None
-    })
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors"""
-    logger.error(f"Internal server error: {str(error)}")
-    return render_template('500.html'), 500
-
+# -------------------------------------------------------
+# ENTRY POINT
+# -------------------------------------------------------
 if __name__ == '__main__':
-    # Load model on startup
-    try:
-        predictor.load_model()
-        logger.info("Model loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to load model: {str(e)}")
-        
-    # Run the application
-    app.run(debug=True, host='0.0.0.0', port=6000)
+    app.run(debug=True)

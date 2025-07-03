@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-container">
+  <h2>Enter Your Details</h2>
+  <form method="POST">
+    <!-- Skills Inputs -->
+    <div class="grid">
+      {% for skill in skills %}
+      <div class="input-group">
+        <label>{{ skill }}</label>
+        <input type="number" name="{{ skill|lower|replace(' ', '_') }}" min="0" max="10" required />
+      </div>
+      {% endfor %}
+    </div>
+    <!-- Personality Sliders -->
+    <h3>Personality Traits</h3>
+    <div class="grid-2">
+      {% for trait in traits %}
+      <div class="input-group">
+        <label>{{ trait }}</label>
+        <input type="range" name="{{ trait|lower|replace(' ', '_') }}" min="0" max="1" step="0.01" value="0.5" />
+      </div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary">Predict Career</button>
+  </form>
+</div>
+{% endblock %}
