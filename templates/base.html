@@ -1,27 +1,26 @@
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ title or 'Career Predictor' }}</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-</head>
-<body>
-  <canvas id="bg-canvas"></canvas>
-  <nav class="navbar">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Career Prediction System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <nav class="navbar">
+      <span><strong>Career Predictor</strong></span>
+      <a class="btn" href="{{ url_for('predict') }}">Try Now</a>
+    </nav>
     <div class="container">
-      <a href="/" class="brand">Career<span>AI</span></a>
-      <ul class="nav-links">
-        <li><a href="/">Home</a></li>
-        <li><a href="/predict">Predict</a></li>
-      </ul>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for m in messages %}
+            <div class="card" style="background:#ecc94b33;">{{ m }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
     </div>
-  </nav>
-  <main class="content">
-    {% block content %}{% endblock %}
-  </main>
-  <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
-</body>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
 </html>

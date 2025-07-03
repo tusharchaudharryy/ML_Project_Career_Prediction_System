@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% block title %}Home ‑ Career Predictor{% endblock %}
 {% block content %}
-<div class="home-container">
-  <h1>Welcome to Career<span>AI</span></h1>
-  <p>Discover your ideal career path powered by AI and your unique skills.</p>
-  <a href="/predict" class="btn">Start Your Prediction</a>
-</div>
+  <section class="card" style="text-align:center;">
+    <h1>Find Your Ideal Career Path</h1>
+    <p>Answer a few questions and discover which career matches your profile.</p>
+    <a href="{{ url_for('predict') }}" class="btn">Start Prediction</a>
+  </section>
 {% endblock %}
