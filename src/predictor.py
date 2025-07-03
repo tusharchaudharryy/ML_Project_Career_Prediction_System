@@ -16,7 +16,6 @@ class CareerPredictor:
         self.model_path = model_path or 'models/career_random_forest_latest.pkl'
 
     def load_model(self, model_path=None):
-        """Load trained model from disk"""
         try:
             path = model_path or self.model_path
 
@@ -36,17 +35,24 @@ class CareerPredictor:
             return False
 
     def validate_features(self, features):
-        """Validate input features"""
         try:
             if not isinstance(features, (list, np.ndarray)):
                 raise ValueError("Features must be a list or numpy array")
 
-            features = np.array(features)
-            if len(features) != 28:
-                raise ValueError(f"Expected 28 features, got {len(features)}")
+            features = np.array(features, dtype=float)
+
+            # Auto normalize if values are greater than 1 (assuming scale of 1–5)
+            if np.any(features > 1):
+                features = features / 5.0
 
             if np.any(features < 0) or np.any(features > 1):
                 raise ValueError("All features must be in range [0, 1]")
+
+            expected_features = self.model.n_features_in_
+            if features.shape[0] > expected_features:
+                features = features[:expected_features]
+            elif features.shape[0] < expected_features:
+                raise ValueError(f"Expected {expected_features} features, got {features.shape[0]}")
 
             return features.reshape(1, -1)
 
@@ -55,7 +61,6 @@ class CareerPredictor:
             raise
 
     def predict(self, features):
-        """Make career prediction"""
         try:
             if self.model is None:
                 if not self.load_model():
@@ -85,7 +90,6 @@ class CareerPredictor:
             raise
 
     def predict_batch(self, features_list):
-        """Predict multiple samples"""
         results = []
         for i, features in enumerate(features_list):
             try:
@@ -101,7 +105,6 @@ class CareerPredictor:
         return results
 
     def get_feature_importance(self):
-        """Return sorted feature importance"""
         try:
             if self.model is None:
                 raise RuntimeError("Model not loaded")
@@ -125,7 +128,6 @@ class CareerPredictor:
             raise
 
     def explain_prediction(self, features):
-        """Explain prediction with feature contributions"""
         try:
             prediction = self.predict(features)
             importance = self.get_feature_importance()
@@ -140,7 +142,7 @@ class CareerPredictor:
 
             if importance:
                 for fname, imp in importance['feature_importance'].items():
-                    contribution = imp * explanation['input_features'][fname]
+                    contribution = imp * explanation['input_features'].get(fname, 0)
                     explanation['feature_contributions'][fname] = contribution
 
                 sorted_contributions = sorted(
@@ -157,7 +159,6 @@ class CareerPredictor:
             raise
 
     def get_model_info(self):
-        """Return summary of loaded model"""
         if self.model is None:
             return {"status": "Model not loaded"}
 
@@ -185,7 +186,6 @@ def make_batch_predictions(features_list, model_path=None):
 if __name__ == "__main__":
     predictor = CareerPredictor()
     if predictor.load_model():
-        # Sample input: 28 normalized features
         sample = [
             0.8, 0.6, 0.4, 0.9, 0.7, 0.8, 0.9, 0.5, 0.3, 0.7,
             0.9, 0.8, 0.6, 0.7, 0.9, 0.8, 0.4,

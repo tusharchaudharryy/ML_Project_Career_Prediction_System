@@ -17,7 +17,6 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-
 class CareerModelTrainer:
     """Handles training of career prediction models"""
 
@@ -28,43 +27,24 @@ class CareerModelTrainer:
         self.best_score = 0.0
 
     def initialize_models(self):
-        """Initialize different ML models for comparison"""
         self.models = {
-            'random_forest': RandomForestClassifier(
-                n_estimators=100,
-                random_state=42,
-                n_jobs=-1
-            ),
-            'svm': SVC(
-                kernel='rbf',
-                random_state=42,
-                probability=True
-            ),
-            'decision_tree': DecisionTreeClassifier(
-                random_state=42,
-                max_depth=10
-            ),
+            'random_forest': RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
+            'svm': SVC(kernel='rbf', random_state=42, probability=True),
+            'decision_tree': DecisionTreeClassifier(random_state=42, max_depth=10),
             'knn': KNeighborsClassifier(n_neighbors=5),
             'naive_bayes': GaussianNB(),
-            'logistic_regression': LogisticRegression(
-                random_state=42,
-                max_iter=1000
-            )
+            'logistic_regression': LogisticRegression(random_state=42, max_iter=1000)
         }
-
         logger.info(f"Initialized {len(self.models)} models")
 
     def train_model(self, model_name, X_train, y_train, X_test=None, y_test=None):
-        """Train a specific model"""
         try:
             if model_name not in self.models:
                 raise ValueError(f"Model '{model_name}' not found")
 
             model = self.models[model_name]
-
             logger.info(f"Training {model_name}...")
             model.fit(X_train, y_train)
-
             train_score = model.score(X_train, y_train)
             logger.info(f"{model_name} training accuracy: {train_score:.4f}")
 
@@ -88,7 +68,6 @@ class CareerModelTrainer:
             raise
 
     def train_all_models(self, X_train, y_train, X_test=None, y_test=None):
-        """Train all models and compare performance"""
         try:
             self.initialize_models()
             results = {}
@@ -111,7 +90,6 @@ class CareerModelTrainer:
             raise
 
     def hyperparameter_tuning(self, model_name, X_train, y_train, param_grid=None):
-        """Perform hyperparameter tuning for a specific model"""
         try:
             if model_name not in self.models:
                 raise ValueError(f"Model '{model_name}' not found")
@@ -146,7 +124,6 @@ class CareerModelTrainer:
                         'solver': ['liblinear', 'lbfgs']
                     }
                 }
-
                 param_grid = param_grids.get(model_name, {})
 
             if not param_grid:
@@ -154,14 +131,11 @@ class CareerModelTrainer:
                 return model
 
             logger.info(f"Performing hyperparameter tuning for {model_name}...")
-            grid_search = GridSearchCV(
-                model, param_grid, cv=5, scoring='accuracy', n_jobs=-1
-            )
+            grid_search = GridSearchCV(model, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
             grid_search.fit(X_train, y_train)
 
             logger.info(f"Best parameters for {model_name}: {grid_search.best_params_}")
             logger.info(f"Best cross-validation score: {grid_search.best_score_:.4f}")
-
             return grid_search.best_estimator_
 
         except Exception as e:
@@ -169,7 +143,6 @@ class CareerModelTrainer:
             raise
 
     def cross_validate_model(self, model, X, y, cv=5):
-        """Perform cross-validation for a model"""
         try:
             scores = cross_val_score(model, X, y, cv=cv, scoring='accuracy')
             logger.info(f"CV scores: {scores}")
@@ -181,15 +154,12 @@ class CareerModelTrainer:
             raise
 
     def train_optimized_random_forest(self, X_train, y_train, X_test=None, y_test=None):
-        """Train an optimized Random Forest model"""
         try:
-            self.initialize_models()  # ✅ FIXED LINE
-
+            self.initialize_models()
             logger.info("Training optimized Random Forest model...")
             rf_optimized = self.hyperparameter_tuning('random_forest', X_train, y_train)
             cv_scores = self.cross_validate_model(rf_optimized, X_train, y_train)
             rf_optimized.fit(X_train, y_train)
-
             train_score = rf_optimized.score(X_train, y_train)
 
             result = {
@@ -216,11 +186,8 @@ class CareerModelTrainer:
             raise
 
     def save_model(self, model, model_name, feature_names=None, target_classes=None):
-        """Save trained model to disk"""
         try:
-            if not os.path.exists("models"):
-                os.makedirs("models")
-
+            os.makedirs("models", exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"models/{model_name}_{timestamp}.pkl"
 
@@ -246,7 +213,6 @@ class CareerModelTrainer:
             raise
 
     def load_model(self, filename):
-        """Load trained model from disk"""
         try:
             model_data = joblib.load(filename)
             logger.info(f"Model loaded from {filename}")
@@ -257,7 +223,6 @@ class CareerModelTrainer:
             raise
 
     def evaluate_model(self, model, X_test, y_test, target_classes=None):
-        """Comprehensive model evaluation"""
         try:
             y_pred = model.predict(X_test)
             y_pred_proba = model.predict_proba(X_test) if hasattr(model, 'predict_proba') else None
@@ -279,23 +244,20 @@ class CareerModelTrainer:
             logger.error(f"Error evaluating model: {str(e)}")
             raise
 
-
 # Example usage
 if __name__ == "__main__":
     from data_preprocessing import DataPreprocessor
     import pprint
 
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
     trainer = CareerModelTrainer()
     preprocessor = DataPreprocessor()
 
     try:
-        X_train, X_test, y_train, y_test = preprocessor.preprocess_pipeline(
-            'data/career_map.csv'
-        )
+        X_train, X_test, y_train, y_test = preprocessor.preprocess_pipeline('data/career_map.csv')
 
-        rf_result = trainer.train_optimized_random_forest(
-            X_train, y_train, X_test, y_test
-        )
+        rf_result = trainer.train_optimized_random_forest(X_train, y_train, X_test, y_test)
 
         trainer.save_model(
             rf_result['model'],

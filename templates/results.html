@@ -1,15 +1,47 @@
-{% extends 'base.html' %}
-{% block title %}Results{% endblock %}
-{% block content %}
-  <h2>Recommended Careers</h2>
-  {% for career, prob in predictions %}
-    <div class="card">
-      <h3>{{ career }}</h3>
-      <div class="progress">
-        <div class="progress-bar" style="width:{{ (prob*100)|round(1) }}%"></div>
-      </div>
-      <p>Probability: {{ (prob*100)|round(2) }}%</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Career Prediction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Your Career Match</h1>
+        </header>
+        <div class="result-card">
+            <h2>{{ formatted['primary_career'] }}</h2>
+            <p class="confidence">Confidence: <strong>{{ formatted['confidence_percentage'] }}%</strong> ({{ formatted['confidence_level'] }})</p>
+            <h3>Top Alternatives</h3>
+            <ul class="alt-list">
+                {% for alt in formatted['alternative_careers'] %}
+                <li>
+                    <span class="career">{{ alt['career'] }}</span>
+                    <span class="prob">{{ alt['probability'] }}%</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <h3>Your Top Skills</h3>
+            <ul class="skill-list">
+                {% for skill, val in stats['top_technical_skills'] %}
+                <li>{{ skill }}: <span>{{ val }}</span></li>
+                {% endfor %}
+            </ul>
+            <h3>Recommendations</h3>
+            <ul class="rec-list">
+                {% for rec in recs %}
+                <li>
+                    <strong>{{ rec['title'] }}</strong>: {{ rec['description'] }}
+                </li>
+                {% endfor %}
+            </ul>
+            <a href="/" class="btn-secondary">Try Again</a>
+        </div>
+        <footer>
+            <p>Powered by AI &mdash; {{ year }}</p>
+        </footer>
     </div>
-  {% endfor %}
-  <a href="{{ url_for('predict') }}" class="btn">Try Again</a>
-{% endblock %}
+</body>
+</html>
