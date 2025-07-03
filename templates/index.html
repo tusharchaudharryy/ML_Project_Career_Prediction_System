@@ -1,9 +1,180 @@
-{% extends 'base.html' %}
-{% block title %}Home ‑ Career Predictor{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Skills Assessment - Career Predictor{% endblock %}
+
 {% block content %}
-  <section class="card" style="text-align:center;">
-    <h1>Find Your Ideal Career Path</h1>
-    <p>Answer a few questions and discover which career matches your profile.</p>
-    <a href="{{ url_for('predict') }}" class="btn">Start Prediction</a>
-  </section>
+<!-- Hero Section -->
+<section class="hero-section bg-gradient-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Discover Your Perfect Career Path</h1>
+                <p class="lead mb-4">Our AI-powered career predictor analyzes your technical skills and personality traits to recommend the ideal career for you.</p>
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-brain fa-3x mb-2"></i>
+                        <h5>AI-Powered</h5>
+                        <p class="small">Machine learning algorithms</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-chart-line fa-3x mb-2"></i>
+                        <h5>Accurate</h5>
+                        <p class="small">Data-driven predictions</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-rocket fa-3x mb-2"></i>
+                        <h5>Fast</h5>
+                        <p class="small">Instant results</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="fas fa-user-graduate fa-6x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Assessment Form -->
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">
+                            <i class="fas fa-clipboard-check me-2"></i>Career Assessment
+                        </h3>
+                        <p class="mb-0 mt-2">Rate your skills and personality traits to get personalized career recommendations</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="POST" action="{{ url_for('predict') }}" id="assessmentForm">
+
+                            <!-- Technical Skills Section -->
+                            <div class="mb-5">
+                                <h4 class="text-primary mb-4">
+                                    <i class="fas fa-code me-2"></i>Technical Skills
+                                    <small class="text-muted">(Rate from 1-7, where 1=Beginner, 7=Expert)</small>
+                                </h4>
+                                <div class="row">
+                                    {% for skill_key, skill_name in technical_skills %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="skill-item">
+                                            <label for="{{ skill_key }}" class="form-label fw-semibold">
+                                                {{ skill_name }}
+                                            </label>
+                                            <div class="skill-rating">
+                                                <input type="range" 
+                                                       class="form-range skill-slider" 
+                                                       id="{{ skill_key }}" 
+                                                       name="{{ skill_key }}" 
+                                                       min="1" max="7" value="4"
+                                                       oninput="updateSkillValue('{{ skill_key }}', this.value)">
+                                                <div class="d-flex justify-content-between small text-muted">
+                                                    <span>Beginner</span>
+                                                    <span id="{{ skill_key }}_value" class="fw-bold text-primary">4</span>
+                                                    <span>Expert</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Personality Traits Section -->
+                            <div class="mb-5">
+                                <h4 class="text-success mb-4">
+                                    <i class="fas fa-heart me-2"></i>Personality Traits
+                                    <small class="text-muted">(Rate from 0-1, where 0=Low, 1=High)</small>
+                                </h4>
+                                <div class="row">
+                                    {% for trait_key, trait_name in personality_traits %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="trait-item">
+                                            <label for="{{ trait_key }}" class="form-label fw-semibold">
+                                                {{ trait_name }}
+                                            </label>
+                                            <div class="trait-rating">
+                                                <input type="range" 
+                                                       class="form-range trait-slider" 
+                                                       id="{{ trait_key }}" 
+                                                       name="{{ trait_key }}" 
+                                                       min="0" max="1" step="0.1" value="0.5"
+                                                       oninput="updateTraitValue('{{ trait_key }}', this.value)">
+                                                <div class="d-flex justify-content-between small text-muted">
+                                                    <span>Low</span>
+                                                    <span id="{{ trait_key }}_value" class="fw-bold text-success">0.5</span>
+                                                    <span>High</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-magic me-2"></i>Get My Career Prediction
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4 mb-4">
+                <div class="feature-box">
+                    <i class="fas fa-chart-pie fa-3x text-primary mb-3"></i>
+                    <h4>Comprehensive Analysis</h4>
+                    <p class="text-muted">We analyze 27 different factors including technical skills and personality traits to provide accurate career recommendations.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-box">
+                    <i class="fas fa-lightbulb fa-3x text-warning mb-3"></i>
+                    <h4>Personalized Recommendations</h4>
+                    <p class="text-muted">Get tailored career suggestions based on your unique skill set and personality profile.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-box">
+                    <i class="fas fa-trophy fa-3x text-success mb-3"></i>
+                    <h4>Career Growth Insights</h4>
+                    <p class="text-muted">Receive actionable recommendations to enhance your skills and advance your career.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateSkillValue(skillKey, value) {
+    document.getElementById(skillKey + '_value').textContent = value;
+}
+
+function updateTraitValue(traitKey, value) {
+    document.getElementById(traitKey + '_value').textContent = parseFloat(value).toFixed(1);
+}
+
+// Form validation
+document.getElementById('assessmentForm').addEventListener('submit', function(e) {
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+    submitBtn.disabled = true;
+});
+</script>
 {% endblock %}
